@@ -1,0 +1,53 @@
+[project]
+name = "csil"
+version = "0.1.0"
+description = "CSIL for VLAs"
+readme = "README.md"
+authors = [
+    { name = "Christian Scherer", email = "chrfesche@aol.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "jax[cuda12]==0.5.3",
+    "ml-collections==1.0.0",
+    "numpy>=1.22.4,<2.0.0",
+    "openpi-client",
+    "robosuite",
+    "robosuite_task_zoo",
+    "robomimic",
+    "mimicgen",
+    "gymnasium>=1.2.0",
+    "flax==0.10.2",
+    "mediapy>=1.2.4",
+    "tensorflow>=2.18.1",
+    "tensorflow-datasets>=4.9.9",
+    "tensorflow-probability>=0.25.0",
+    "tf-keras>=2.18.0",
+    "openpi",
+    "wandb>=0.23.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["csil"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+
+[tool.uv]
+override-dependencies = [
+    "gymnasium==1.0.0",
+    "matplotlib==3.10.5",
+]
+
+[tool.uv.sources]
+openpi = { git = "https://github.com/Shinechaote/openpi-csil.git" }
+mimicgen = { git = "https://github.com/NVlabs/mimicgen.git", rev="72bd767c255545f462e7ccfb2731f2e5d4c1d9bb" }
+robomimic = { git = "https://github.com/ARISE-Initiative/robomimic.git", rev="d0b37cf214bd24fb590d182edb6384333f67b661" }
+robosuite = { git = "https://github.com/ARISE-Initiative/robosuite.git", rev="b9d8d3de5e3dfd1724f4a0e6555246c460407daa" }
+robosuite_task_zoo = { git = "https://github.com/ARISE-Initiative/robosuite-task-zoo.git", rev="74eab7f88214c21ca1ae8617c2b2f8d19718a9ed" }

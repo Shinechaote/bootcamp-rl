@@ -1,0 +1,17 @@
+wandb/
+__pycache__/
+csil/debug_files/
+
+.env
+uv.lock
+
+preprocessed_datasets_with_vla_embeds/
+robomimic_datasets/
+vla_checkpoints/
+runs/
+
+*.npy
+*.pdf
+*.png
+*.svg
+*.mp4
