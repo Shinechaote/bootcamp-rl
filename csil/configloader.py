@@ -4,9 +4,11 @@ from csil.loss_configs import BasicSACConfig
 from csil.environment_wrappers import (
     mimicgen_env_creation,
     robomimic_env_creation,
+    default_gym_env_creation,
     RobomimicStateOnly,
     RobomimicNormalizedImage,
     RobomimicPizero,
+    NormalGymWrapper,
 )
 import os
 from csil.networks import periodic_relu_activation, triangle_activation
@@ -22,6 +24,7 @@ import wandb
 from csil.networks import ResNetTorso
 from csil.environment_wrappers import Sample
 from datetime import datetime
+import gymnasium as gym
 
 
 def verify_config(config, args):
@@ -97,6 +100,9 @@ def get_config(config_dict, args):
             "robot0_eye_in_hand",
         ]
         f.close()
+    elif config.environment.name == "HalfCheetah-v4":
+        config.environment.env_type = "gym"
+        config.environment.env_creation_fn = default_gym_env_creation
     else:
         print(f"{config.environment.name} is not yet implemented")
         raise NotImplementedError()
@@ -113,7 +119,7 @@ def get_config(config_dict, args):
     )
     if config.algorithm.is_normal_env:
         # For normal gym envs
-        config.environment.sampled_obs = env.observation_space.sample()
+        env = NormalGymWrapper(env)
         config.environment.sampled_action = env.action_space.sample()
     else:
         # For robomimic gym envs
@@ -139,9 +145,10 @@ def get_config(config_dict, args):
                 "The selected environment wrapper option is not defined"
             )
 
-        obs, _ = env.reset()
-        config.environment.sampled_obs = obs
         config.environment.sampled_action = env.action_spec[0]
+
+    obs, _ = env.reset()
+    config.environment.sampled_obs = obs
 
     config.environment.num_actions = np.prod(config.environment.sampled_action.shape)
     if config.general.algorithm in ["sacfd", "sac"]:
@@ -158,9 +165,9 @@ def get_config(config_dict, args):
 
     config.general.example_item = Sample(
         config.environment.sampled_obs,
-        np.zeros((7,)),
+        config.environment.sampled_action,
         config.environment.sampled_obs,
-        np.zeros((7,)),
+        config.environment.sampled_action,
         np.zeros((1,)),
         np.zeros((1,)),
     )

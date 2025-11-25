@@ -24,7 +24,6 @@ class Observation:
 class ObservationStats(Observation):
     pass
 
-
 @jax.tree_util.register_dataclass
 @dataclass
 class Sample:
@@ -35,6 +34,29 @@ class Sample:
     rewards: jnp.ndarray
     terminations: jnp.ndarray
 
+class NormalGymWrapper(gym.Env):
+    def __init__(self, env):
+        self.env = env
+        self.action_space = env.action_space
+
+    def parse_obs(self, obs):
+        obs = Observation(state=obs)
+        return obs
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        processed_obs = self.parse_obs(obs)
+
+        return processed_obs, reward, terminated, truncated, info
+
+    def reset(self):
+        obs, _ = self.env.reset()
+        processed_obs = self.parse_obs(obs)
+
+        return processed_obs, None
+
+    def render(self):
+        return self.env.render()
 
 class RobomimicStateOnly(gym.Env):
     def __init__(self, env, render_cam="agentview"):

@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Christian Scherer", email = "chrfesche@aol.com" }
 ]
-requires-python = "==3.11"
+requires-python = ">=3.11"
 dependencies = [
     "jax[cuda12]==0.5.3",
     "ml-collections==1.0.0",

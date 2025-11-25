@@ -217,7 +217,14 @@ if __name__ == "__main__":
             directory=config.checkpoints.checkpoint_dir, options=options
         )
 
-    demo_buffer_state = load_data(config, args)
+    if config.general.algorithm != "sac":
+        demo_buffer_state = load_data(config, args)
+    else:
+        config.algorithm.action_dataset_statistics = None
+        config.algorithm.state_dataset_statistics = None
+        config.algorithm.residual_action_dataset_statistics = None
+        config.algorithm.residual_action_scaling = None
+
 
     nr_hidden_units = config.algorithm.nr_hidden_units
     bottleneck_size = config.algorithm.bottleneck_size
@@ -327,9 +334,9 @@ if __name__ == "__main__":
                 config.environment.sampled_action = env.action_spec[0]
                 config.general.example_item = Sample(
                     config.environment.sampled_obs,
-                    np.zeros((7,)),
+                    config.environment.sampled_action,
                     config.environment.sampled_obs,
-                    np.zeros((7,)),
+                    config.environment.sampled_action,
                     np.zeros((1,)),
                     np.zeros((1,)),
                 )
@@ -348,12 +355,13 @@ if __name__ == "__main__":
         )
 
 
-    critic_params = critic_pretraining(
-        critic_network,
-        critic_params,
-        demo_buffer_state,
-        config,
-    )
+    if config.general.algorithm != "sac":
+        critic_params = critic_pretraining(
+            critic_network,
+            critic_params,
+            demo_buffer_state,
+            config,
+        )
 
     if config.general.algorithm == "sac":
         sac_module = sac.SAC(

@@ -11,6 +11,7 @@ from csil.environment_wrappers import (
     RobomimicNormalizedImage,
     RobomimicEncodedImage,
     RobomimicStateOnly,
+    NormalGymWrapper,
     get_joint_states,
 )
 from csil.utils import expand_obs_dim, normalize_observation
@@ -65,7 +66,9 @@ def run_normal_eval(
         or config.algorithm.use_vla
         or config.algorithm.image_based_csil,
     )
-    if config.algorithm.joint_space_obs:
+    if config.algorithm.is_normal_env:
+        env = NormalGymWrapper(env)
+    elif config.algorithm.joint_space_obs:
         env = RobomimicStateOnly(env)
     elif config.algorithm.image_based_csil and config.algorithm.freeze_embeddings:
         env = RobomimicEncodedImage(
@@ -95,6 +98,8 @@ def run_normal_eval(
         env = RobomimicStateOnly(
             env, config.vla.simulated_vla_network, config.vla.simulated_vla_params
         )
+    elif config.environment.name == "HalfCheetah-v4":
+        pass
     else:
         raise NotImplementedError(
             "The selected environment wrapper option is not defined"
@@ -117,9 +122,9 @@ def run_normal_eval(
         total_reward = 0
 
         if config.algorithm.use_vla and config.algorithm.use_vla_action_for_hetstat:
-            base_actions = np.zeros((config.environment.max_episode_length, 7))
-            complete_actions = np.zeros((config.environment.max_episode_length, 7))
-            residual_actions = np.zeros((config.environment.max_episode_length, 7))
+            base_actions = np.zeros((config.environment.max_episode_length, config.environment.sampled_action.shape[0]))
+            complete_actions = np.zeros((config.environment.max_episode_length, config.environment.sampled_action.shape[0]))
+            residual_actions = np.zeros((config.environment.max_episode_length, config.environment.sampled_action.shape[0]))
 
         for i in tqdm(range(config.environment.max_episode_length), leave=False):
 

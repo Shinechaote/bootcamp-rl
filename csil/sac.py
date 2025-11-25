@@ -18,6 +18,7 @@ from csil.environment_wrappers import (
     RobomimicStateOnly,
     RobomimicPizero,
     RobomimicNormalizedImage,
+    NormalGymWrapper
 )
 from dataclasses import asdict
 from csil.utils import ItemBuffer, normalize_observation, expand_obs_dim
@@ -58,7 +59,9 @@ class SAC:
             or config.algorithm.image_based_csil,
         )
 
-        if config.algorithm.joint_space_obs:
+        if config.algorithm.is_normal_env:
+            self.env = NormalGymWrapper(self.env)
+        elif config.algorithm.joint_space_obs:
             self.env = RobomimicStateOnly(self.env)
         elif config.algorithm.image_based_csil and config.algorithm.freeze_embeddings:
             self.env = RobomimicEncodedImage(
@@ -90,6 +93,8 @@ class SAC:
             self.env = RobomimicStateOnly(
                 self.env, simulated_vla_network, simulated_vla_params
             )
+        elif config.environment.name == "HalfCheetah-v4":
+            pass
         else:
             raise NotImplementedError(
                 "The selected environment wrapper option is not defined"
@@ -203,11 +208,16 @@ class SAC:
                 minval=-0.999,
                 maxval=0.999,
             )
-            processed_action = self.config.algorithm.action_unnormalization(
-                action, *self.config.algorithm.action_dataset_statistics
-            )
+            if self.config.algorithm.action_dataset_statistics is not None:
+                processed_action = self.config.algorithm.action_unnormalization(
+                    action, *self.config.algorithm.action_dataset_statistics
+                )
+            else:
+                processed_action = action
+
             processed_action = get_processed_action(processed_action)[0]
-            return processed_action
+
+            return processed_action, action
 
         @jax.jit
         def get_q_value(critic_state: TrainState, obs, action: np.ndarray):
@@ -217,20 +227,24 @@ class SAC:
 
         @jax.jit
         def get_action(
-            policy_params: dict, obs, key: jax.random.PRNGKey, dataset_statistics
+            policy_params: dict, obs, key: jax.random.PRNGKey
         ):
             dist = self.policy_network.apply(policy_params, expand_obs_dim(obs))[0]
             key, subkey = jax.random.split(key)
             action = dist.sample(seed=subkey)
 
-            processed_action = self.config.algorithm.action_unnormalization(
-                action, *dataset_statistics
-            )
+            if self.config.algorithm.action_dataset_statistics is not None:
+                processed_action = self.config.algorithm.action_unnormalization(
+                    action, *self.config.algorithm.action_dataset_statistics
+                )
+            else:
+                processed_action = action
 
             if self.config.algorithm.use_linear_residual_combination:
-                pizero_action = self.config.algorithm.action_unnormalization(
-                    obs.vla_action, *dataset_statistics
-                )
+                if self.config.algorithm.action_dataset_statistics is not None:
+                    pizero_action = self.config.algorithm.action_unnormalization(
+                        obs.vla_action, *self.config.algorithm.action_dataset_statistics
+                    )
                 processed_action = (processed_action + pizero_action) / 2.0
 
             processed_action = get_processed_action(processed_action)[0]
@@ -385,7 +399,6 @@ class SAC:
                         self.policy_state.params,
                         obs,
                         self.key,
-                        self.config.algorithm.action_dataset_statistics,
                     )
 
                 next_obs, reward, terminated, truncated, info = self.env.step(
