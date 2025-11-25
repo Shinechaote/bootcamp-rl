@@ -1,1 +1,2 @@
-# Coherent Soft Imitation for VLAs via Residual Fine-Tuning
+Installation via
+`GIT_LFS_SKIP_SMUDGE=1 uv pip install -e .`

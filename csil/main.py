@@ -14,7 +14,7 @@ import tensorflow_probability.substrates.jax as tfp
 
 # import mani_skill2_real2sim.envs
 from csil.regression import pretrain_policy, critic_pretraining
-from csil.utils import disable_tf_from_using_gpus, expand_obs_dim, visualize_action_dims, get_statistics
+from csil.utils import disable_tf_from_using_gpus, expand_obs_dim
 from csil.configloader import get_config, get_args_parsed, create_run_dir
 from ml_collections import config_dict as ml_config_dict_module
 import yaml

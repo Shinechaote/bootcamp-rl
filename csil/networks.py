@@ -154,16 +154,6 @@ class MLP(nn.Module):
     def __call__(self, x):
         layers = []
         for i, size in enumerate(self.layer_sizes[:-1]):  # Hidden layers
-            if self.batch_renorm:
-                # TODO I dont get what the use_running_average argument means, so I have made it False because I would assume we will be using the critic only in training
-                # https://github.com/iBims1JFK/gait_in_eight/blob/main/gait_in_eight/algorithms/crossq/default/critic.py#L32
-                layers.append(
-                    BatchRenorm(
-                        use_running_average=False,
-                        momentum=self.batch_renorm_momentum,
-                        warm_up_steps=self.batch_renorm_warmup_steps,
-                    )
-                )
 
             layers.append(nn.Dense(size, kernel_init=self.w_init))
             if self.layer_norm and i == 0:
