@@ -426,6 +426,8 @@ def robomimic_env_creation(config, render, offcamera_render):
     # These are the ones we get
     # kwargs = {'ignore_done': True, 'use_object_obs': True, 'control_freq': 20, 'controller_configs': {'type': 'BASIC', 'body_parts': {'right': {'type': 'OSC_POSE', 'input_max': 1, 'input_min': -1, 'output_max': [0.05, 0.05, 0.05, 0.5, 0.5, 0.5], 'output_min': [-0.05, -0.05, -0.05, -0.5, -0.5, -0.5], 'kp': 150, 'damping': 1, 'impedance_mode': 'fixed', 'kp_limits': [
     #     0, 300], 'damping_limits': [0, 10], 'position_limits': None, 'orientation_limits': None, 'uncouple_pos_ori': True, 'control_delta': True, 'interpolation': None, 'ramp_ratio': 0.2, 'input_ref_frame': 'world', 'gripper': {'type': 'GRIP'}}}}, 'camera_depths': False, 'camera_heights': 84, 'camera_widths': 84, 'lite_physics': False, 'reward_shaping': False}
+    if "reward_shaping" in config.environment.env_meta["env_kwargs"]:
+        del config.environment.env_meta["env_kwargs"]["reward_shaping"]
 
     env = suite.make(
         env_name=config.environment.name,  # try with other tasks like "Stack" and "Door"
@@ -433,6 +435,7 @@ def robomimic_env_creation(config, render, offcamera_render):
         has_renderer=render,
         has_offscreen_renderer=offcamera_render,
         use_camera_obs=False,
+        reward_shaping=True,
         **config.environment.env_meta["env_kwargs"].to_dict(),
     )
 

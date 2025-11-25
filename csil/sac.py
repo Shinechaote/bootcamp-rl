@@ -93,8 +93,6 @@ class SAC:
             self.env = RobomimicStateOnly(
                 self.env, simulated_vla_network, simulated_vla_params
             )
-        elif config.environment.name == "HalfCheetah-v4":
-            pass
         else:
             raise NotImplementedError(
                 "The selected environment wrapper option is not defined"
@@ -111,7 +109,6 @@ class SAC:
         self.start_with_evaluation = config.algorithm.start_with_evaluation
         self.record_eval_episodes = config.algorithm.record_eval_episodes
         self.num_recordings_per_eval = config.algorithm.num_recordings_per_eval
-        self.run_dir = config.general.run_dir
 
         self.use_vla = config.algorithm.use_vla
         self.algorithm = Algorithm.SAC
@@ -127,7 +124,6 @@ class SAC:
         self.max_eval_success_rate = 0.0
         self.max_eval_params = jax.tree_util.tree_map(lambda x: x.copy(), policy_params)
 
-        self.checkpoint_manager = config.checkpoints.manager
         self.saving_frequency = config.checkpoints.saving_frequency
 
         if self.algorithm == Algorithm.SAC:
@@ -190,7 +186,7 @@ class SAC:
         if demo_buffer_state is not None:
             fields["demo"] = demo_buffer_state
         np.save(
-            os.path.join(self.run_dir, "replay_buffer.npy"), fields, allow_pickle=True
+            os.path.join(self.config.general.run_dir, "replay_buffer.npy"), fields, allow_pickle=True
         )
 
     def train(self, demo_buffer_state=None):
@@ -265,7 +261,7 @@ class SAC:
             metrics = {}
 
             entropy_keys = jax.random.split(
-                entropy_key, batched_online_sample[0].shape[0]
+                entropy_key, self.config.algorithm.batch_size 
             )
             (entropy_loss, (entropy_metrics)), entropy_gradients = (
                 self.beta_grad_loss_fn(
@@ -281,7 +277,7 @@ class SAC:
 
             for i in range(self.config.algorithm.critic_and_reward_utd):
                 critic_keys = jax.random.split(
-                    critic_key, batched_online_sample[0].shape[0]
+                    critic_key, self.config.algorithm.batch_size
                 )
                 (critic_loss, (critic_metrics)), critic_gradients = (
                     self.critic_grad_loss_fn(
@@ -290,8 +286,8 @@ class SAC:
                         critic_state.target_params,
                         entropy_state.params,
                         batched_online_sample,
-                        batched_demonstration_sample,
                         critic_keys,
+                        batched_demonstration_sample,
                     )
                 )
 
@@ -312,7 +308,7 @@ class SAC:
                     )
 
             policy_keys = jax.random.split(
-                policy_key, batched_online_sample[0].shape[0]
+                policy_key, self.config.algorithm.batch_size 
             )
             (policy_loss, (policy_metrics)), policy_gradients = (
                 self.policy_grad_loss_fn(
@@ -565,12 +561,12 @@ class SAC:
                 == 0
             ):
                 video_path = os.path.join(
-                    self.run_dir,
+                    self.config.general.run_dir,
                     f"rendered_video/training_episode_{(global_step//1000)*1000}.mp4",
                 )
 
-                if not os.path.exists(os.path.join(self.run_dir, "rendered_video")):
-                    os.makedirs(os.path.join(self.run_dir, "rendered_video"))
+                if not os.path.exists(os.path.join(self.config.general.run_dir, "rendered_video")):
+                    os.makedirs(os.path.join(self.config.general.run_dir, "rendered_video"))
 
                 media.write_video(
                     video_path, images, fps=self.config.environment.render_fps

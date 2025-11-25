@@ -98,8 +98,6 @@ def run_normal_eval(
         env = RobomimicStateOnly(
             env, config.vla.simulated_vla_network, config.vla.simulated_vla_params
         )
-    elif config.environment.name == "HalfCheetah-v4":
-        pass
     else:
         raise NotImplementedError(
             "The selected environment wrapper option is not defined"
@@ -153,9 +151,10 @@ def run_normal_eval(
                 if q_bc > q_policy:
                     action = bc_action
 
-            action = config.algorithm.action_unnormalization(
-                action, *config.algorithm.action_dataset_statistics
-            )
+            if config.algorithm.action_dataset_statistics is not None:
+                action = config.algorithm.action_unnormalization(
+                    action, *config.algorithm.action_dataset_statistics
+                )
             if config.algorithm.use_linear_residual_combination:
                 action = (obs.vla_action + action) / 2.0
 
@@ -355,7 +354,8 @@ def run_vla_eval(
 
             #     current_chunk_index = 0
             # action = cur_chunk[current_chunk_index]
-            action = config.algorithm.action_unnormalization(obs.vla_action, *config.algorithm.action_dataset_statistics)
+            if config.algorithm.action_dataset_statistics is not None:
+                action = config.algorithm.action_unnormalization(obs.vla_action, *config.algorithm.action_dataset_statistics)
             action = get_processed_action(config, action)
             current_chunk_index += 1
 

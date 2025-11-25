@@ -66,7 +66,7 @@ class BasicSACConfig(SoftImitationConfig):
 
             # Critic loss
             dist = stop_gradient(
-                policy_network.apply(policy_params, online_samples.obs)[0]
+                policy_network.apply(policy_params, expand_obs_dim(online_samples.obs))[0]
             )
             next_action = dist.sample(seed=key)[0]
             next_log_prob = dist.log_prob(next_action)
@@ -77,20 +77,20 @@ class BasicSACConfig(SoftImitationConfig):
             beta = stop_gradient(beta_with_grad)
 
             next_q_target = critic_network.apply(
-                critic_target_params, online_samples.next_obs, next_action
+                critic_target_params, expand_obs_dim(online_samples.next_obs), jnp.expand_dims(next_action, 0)
             )
             min_next_q_target = jnp.min(next_q_target)
 
-            # Use knowledge to bound rogue Q values.
-            max_value = 1.0
-            min_next_q_target = jnp.clip(min_next_q_target, a_max=max_value)
+            # # Use knowledge to bound rogue Q values.
+            # max_value = 1.0
+            # min_next_q_target = jnp.clip(min_next_q_target, a_max=max_value)
 
             y = online_samples.rewards + self.gamma * (
                 1 - online_samples.terminations
             ) * (min_next_q_target - beta * next_log_prob)
 
             q = critic_network.apply(
-                critic_params, online_samples.states, online_samples.actions
+                critic_params, expand_obs_dim(online_samples.obs), jnp.expand_dims(online_samples.actions, 0)
             )
             q_loss = (q - y) ** 2
 
@@ -103,7 +103,7 @@ class BasicSACConfig(SoftImitationConfig):
             # During training, expert actions should become / stay high likelihood.
             if self.monitor_bc_metrics:
                 expert_action_dist, _, expert_min_variance = policy_network.apply(
-                    policy_params, demo_samples.obs
+                    policy_params, expand_obs_dim(demo_samples.obs)
                 )
                 expert_action_sample = expert_action_dist.sample(seed=key)
                 expert_ent_approx = -expert_action_dist.log_prob(
@@ -114,7 +114,7 @@ class BasicSACConfig(SoftImitationConfig):
                 expert_min_variance = jnp.min(expert_action_dist.variance())
 
                 online_action_dist, _, online_min_variance = policy_network.apply(
-                    policy_params, online_samples.obs
+                    policy_params, expand_obs_dim(online_samples.obs)
                 )
                 online_action_sample = online_action_dist.sample(seed=key)
                 online_ent_approx = -online_action_dist.log_prob(
@@ -150,23 +150,6 @@ class BasicSACConfig(SoftImitationConfig):
                 None,
                 None,
                 None,
-                None,
-                None,
-                None,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
                 0,
                 0,
                 0,
@@ -193,7 +176,7 @@ class BasicSACConfig(SoftImitationConfig):
             key: jax.random.PRNGKey,
         ):
             # Policy loss
-            dist = policy_network.apply(policy_params, online_samples.obs)[0]
+            dist = policy_network.apply(policy_params, expand_obs_dim(online_samples.obs))[0]
             current_action = dist.sample(seed=key)[0]
             current_log_prob = dist.log_prob(current_action)
 
@@ -203,7 +186,7 @@ class BasicSACConfig(SoftImitationConfig):
             beta = stop_gradient(beta_with_grad)
 
             q = critic_network.apply(
-                stop_gradient(critic_params), online_samples.actions, current_action
+                stop_gradient(critic_params), expand_obs_dim(online_samples.obs), jnp.expand_dims(current_action, 0)
             )
             min_q = jnp.min(q)
 
@@ -222,7 +205,7 @@ class BasicSACConfig(SoftImitationConfig):
 
         policy_vmap_loss_fn = jax.vmap(
             policy_loss_fn,
-            in_axes=(None, None, None, None, None, None, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+            in_axes=(None, None, None, 0, 0),
             out_axes=0,
         )
         mean_policy_vmapped_loss_fn = lambda *a, **k: jax.tree.map(
@@ -242,7 +225,7 @@ class BasicSACConfig(SoftImitationConfig):
             online_samples,
             key,
         ):
-            dist = policy_network.apply(policy_params, online_samples.obs)[0]
+            dist = policy_network.apply(policy_params, expand_obs_dim(online_samples.obs))[0]
             current_action = dist.sample(seed=key)[0]
             current_log_prob = dist.log_prob(current_action)
             entropy = stop_gradient(-current_log_prob)
@@ -263,7 +246,7 @@ class BasicSACConfig(SoftImitationConfig):
             return jnp.mean(x) if x is not None else x
 
         beta_vmap_loss_fn = jax.vmap(
-            beta_loss_fn, in_axes=(None, None, None, None, None, 0, 0, 0), out_axes=0
+            beta_loss_fn, in_axes=(None, None, None, 0, 0), out_axes=0
         )
         mean_beta_vmapped_loss_fn = lambda *a, **k: jax.tree.map(
             safe_mean, beta_vmap_loss_fn(*a, **k)

@@ -100,8 +100,8 @@ def get_config(config_dict, args):
             "robot0_eye_in_hand",
         ]
         f.close()
-    elif config.environment.name == "HalfCheetah-v4":
-        config.environment.env_type = "gym"
+    elif config.algorithm.is_normal_env:
+        config.environment.env_type = "normal"
         config.environment.env_creation_fn = default_gym_env_creation
     else:
         print(f"{config.environment.name} is not yet implemented")
